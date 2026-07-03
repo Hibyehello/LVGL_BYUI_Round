@@ -23,20 +23,26 @@ int main() {
     // temp display window on PC (MUST STAY THE SAME AS IT MODELS THE EXACT PIXEL DIMENSIONS OF THE DISPLAY)
     lv_display_t * disp = lv_sdl_window_create(480, 480);
     lv_obj_t * scr = lv_display_get_screen_active(disp);
-    lv_obj_set_style_bg_color(scr, lv_color_make(0,0,0), LV_PART_MAIN);
+    //lv_obj_set_style_bg_color(scr, lv_color_make(0,0,0), LV_PART_MAIN);
     
+    setup_splash();
 
-    battery_temp_box();
-    break_temp_box();
-    motor_temp_box();
-    speed_box();
-    throttle_box();
+    box_widget* battery_temp_box = new box_widget(lv_screen_active(), 80, 80, 100, 336);
+    box_widget* brake_temp_box = new box_widget(lv_screen_active(), 80, 80, 200, 336);
+    box_widget* motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
+    box_widget* speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
+    box_widget* throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
     // error_box();
 
     // text_object();
 
     // Main LVGL loop to quit program
     bool quit = false;
+
+    uint32_t moving_x = throttle_box->get_pos().x;
+    uint32_t moving_y = throttle_box->get_pos().y;
+    bool left = false;
+    bool up = false;
 
     while (!quit) {
         SDL_Event e;
@@ -50,6 +56,22 @@ int main() {
         }
     
     uint32_t time_till_next = lv_timer_handler();
+
+    moving_x = moving_x + (left ? -1 : 1);
+    moving_y = moving_y + (up ? -1 : 1);
+
+    if(moving_x > 480 - throttle_box->get_size().width-3)
+        left = true;
+    else if(moving_x < 3)
+        left = false;
+
+    if(moving_y > 480 - throttle_box->get_size().height-3)
+        up = true;
+    else if(moving_y < 3)
+        up = false;
+
+    throttle_box->set_pos(moving_x, moving_y);
+
     SDL_Delay(time_till_next);
 
     }
@@ -125,11 +147,11 @@ void setup() {
     
     setup_splash();
 
-    battery_temp_box();
-    break_temp_box();
-    motor_temp_box();
-    speed_box();
-    throttle_box();
+    box_widget* battery_temp_box = new box_widget(lv_screen_active(), 80, 80, 100, 336);
+    box_widget* brake_temp_box = new box_widget(lv_screen_active(), 80, 80, 200, 336);
+    box_widget* motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
+    box_widget* speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
+    box_widget* throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
     // error_box();
 
 
@@ -151,7 +173,6 @@ int counter = 0;
 void loop() {
     // Main LVGL loop to quit program
     lv_timer_handler();
-
     delay(5);
 }
 
