@@ -32,6 +32,15 @@ int main() {
     box_widget* motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
     box_widget* speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
     box_widget* throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
+    box_widget* throttle_fill = new box_widget(lv_screen_active(), 84, 5, 93, 53);
+
+    {
+        lv_obj_t* throttle_fill_obj = throttle_fill->get_lv_obj();
+
+        lv_obj_set_style_bg_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
+
+        lv_obj_set_style_outline_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
+    }
     // error_box();
 
     // text_object();
@@ -39,10 +48,8 @@ int main() {
     // Main LVGL loop to quit program
     bool quit = false;
 
-    uint32_t moving_x = throttle_box->get_pos().x;
-    uint32_t moving_y = throttle_box->get_pos().y;
-    bool left = false;
-    bool up = false;
+    uint32_t size_w = throttle_fill->get_size().width;
+    bool shrink = false;
 
     while (!quit) {
         SDL_Event e;
@@ -57,20 +64,14 @@ int main() {
     
     uint32_t time_till_next = lv_timer_handler();
 
-    moving_x = moving_x + (left ? -1 : 1);
-    moving_y = moving_y + (up ? -1 : 1);
+    size_w = size_w + (shrink ? -1 : 1);
 
-    if(moving_x > 480 - throttle_box->get_size().width-3)
-        left = true;
-    else if(moving_x < 3)
-        left = false;
+    if(size_w > throttle_box->get_size().width - 3)
+        shrink = true;
+    else if(size_w < 80)
+        shrink = false;
 
-    if(moving_y > 480 - throttle_box->get_size().height-3)
-        up = true;
-    else if(moving_y < 3)
-        up = false;
-
-    throttle_box->set_pos(moving_x, moving_y);
+    throttle_fill->set_width(size_w);
 
     SDL_Delay(time_till_next);
 
