@@ -5,6 +5,49 @@ extern "C" {
 #include <lvgl.h>
 }
 
+box_widget* battery_temp_box;
+box_widget* brake_temp_box;
+box_widget* motor_temp_box;
+box_widget* speed_box;
+box_widget* throttle_box;
+box_widget* throttle_fill;
+
+uint32_t size_w = 0;
+bool shrink = false;
+
+void Create_UI() {
+    setup_splash();
+
+    battery_temp_box = new box_widget(lv_screen_active(), 80, 80, 100, 336);
+    brake_temp_box = new box_widget(lv_screen_active(), 80, 80, 200, 336);
+    motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
+    speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
+    throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
+    throttle_fill = new box_widget(throttle_box->get_lv_obj(), 88, 5, -15, -17);
+
+    {
+        lv_obj_t* throttle_fill_obj = throttle_fill->get_lv_obj();
+
+        lv_obj_set_style_bg_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
+
+        lv_obj_set_style_outline_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
+        lv_obj_set_style_outline_width(throttle_fill_obj, 0, LV_PART_MAIN);
+    }
+
+    size_w = throttle_fill->get_size().width;
+}
+
+void Update_UI() {
+    size_w = size_w + (shrink ? -1 : 1);
+
+    if(size_w > throttle_box->get_size().width - 3)
+        shrink = true;
+    else if(size_w < 80)
+        shrink = false;
+
+    throttle_fill->set_width(size_w);
+}
+
 #ifdef NATIVE
     #include <SDL2/SDL.h>
 
@@ -25,31 +68,14 @@ int main() {
     lv_obj_t * scr = lv_display_get_screen_active(disp);
     //lv_obj_set_style_bg_color(scr, lv_color_make(0,0,0), LV_PART_MAIN);
     
-    setup_splash();
+    Create_UI();
 
-    box_widget* battery_temp_box = new box_widget(lv_screen_active(), 80, 80, 100, 336);
-    box_widget* brake_temp_box = new box_widget(lv_screen_active(), 80, 80, 200, 336);
-    box_widget* motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
-    box_widget* speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
-    box_widget* throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
-    box_widget* throttle_fill = new box_widget(lv_screen_active(), 84, 5, 93, 53);
-
-    {
-        lv_obj_t* throttle_fill_obj = throttle_fill->get_lv_obj();
-
-        lv_obj_set_style_bg_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
-
-        lv_obj_set_style_outline_color(throttle_fill_obj, lv_color_make(225, 150, 90), LV_PART_MAIN);
-    }
     // error_box();
 
     // text_object();
 
     // Main LVGL loop to quit program
     bool quit = false;
-
-    uint32_t size_w = throttle_fill->get_size().width;
-    bool shrink = false;
 
     while (!quit) {
         SDL_Event e;
@@ -62,18 +88,11 @@ int main() {
             }
         }
     
-    uint32_t time_till_next = lv_timer_handler();
+        Update_UI();
 
-    size_w = size_w + (shrink ? -1 : 1);
+        uint32_t time_till_next = lv_timer_handler();
 
-    if(size_w > throttle_box->get_size().width - 3)
-        shrink = true;
-    else if(size_w < 80)
-        shrink = false;
-
-    throttle_fill->set_width(size_w);
-
-    SDL_Delay(time_till_next);
+        SDL_Delay(time_till_next);
 
     }
     return 0;
@@ -146,16 +165,7 @@ void setup() {
     lv_display_set_buffers(disp, buf1, buf2, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
     
-    setup_splash();
-
-    box_widget* battery_temp_box = new box_widget(lv_screen_active(), 80, 80, 100, 336);
-    box_widget* brake_temp_box = new box_widget(lv_screen_active(), 80, 80, 200, 336);
-    box_widget* motor_temp_box = new box_widget(lv_screen_active(), 80, 80, 300, 336);
-    box_widget* speed_box = new box_widget(lv_screen_active(), 150, 300, 0, 0, true);
-    box_widget* throttle_box = new box_widget(lv_screen_active(), 90, 300, 90, 50);
-    // error_box();
-
-
+    Create_UI();
 
     const esp_timer_create_args_t timer_args = {
         .callback = &lvgl_tick_cb,
@@ -173,8 +183,9 @@ void setup() {
 int counter = 0;
 void loop() {
     // Main LVGL loop to quit program
+    Update_UI();
     lv_timer_handler();
-    delay(5);
+    vTaskDelay(pdMS_TO_TICKS(10));
 }
 
 #endif

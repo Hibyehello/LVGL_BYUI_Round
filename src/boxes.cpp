@@ -38,7 +38,8 @@ box_widget::box_widget(lv_obj_t* parent ,uint32_t height, uint32_t width, uint32
 
     lv_obj_set_style_outline_color(m_obj, lv_color_make(43, 114, 194), LV_PART_MAIN);
     lv_obj_set_style_outline_width(m_obj, 3, LV_PART_MAIN);
-    lv_obj_set_style_outline_pad(m_obj, 2, LV_PART_MAIN);
+    //lv_obj_set_style_outline_pad(m_obj, 2, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(m_obj, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_outline_opa(m_obj, LV_OPA_COVER, LV_PART_MAIN);
 
     lv_obj_fade_in(m_obj, 1000, 2000);
