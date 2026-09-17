@@ -36,7 +36,7 @@ void Create_UI() {
 
     size_w = throttle_fill->get_size().width;
 }
-
+int32_t angle = 0;
 void Update_UI() {
     size_w = size_w + (shrink ? -1 : 1);
 
@@ -67,7 +67,7 @@ int main() {
     lv_display_t * disp = lv_sdl_window_create(480, 480);
     lv_obj_t * scr = lv_display_get_screen_active(disp);
     //lv_obj_set_style_bg_color(scr, lv_color_make(0,0,0), LV_PART_MAIN);
-    
+
     Create_UI();
 
     // error_box();
@@ -76,6 +76,11 @@ int main() {
 
     // Main LVGL loop to quit program
     bool quit = false;
+
+    // We can control the frequency at which the ui is updated here
+    lv_timer_create([](lv_timer_t * t) {
+        Update_UI();
+    }, 16, NULL);
 
     while (!quit) {
         SDL_Event e;
@@ -87,13 +92,14 @@ int main() {
                 quit = true;
             }
         }
-    
-        Update_UI();
 
         uint32_t time_till_next = lv_timer_handler();
 
-        SDL_Delay(time_till_next);
+        if (time_till_next == 0) {
+            time_till_next = 1; 
+        }
 
+        SDL_Delay(time_till_next);
     }
     return 0;
 }
@@ -114,14 +120,14 @@ void disp_flush(lv_display_t *display, const lv_area_t* area, uint8_t *px_map) {
     // LVGL provides the exact coordinates of the redrawn area.
     int x_start = area->x1;
     int y_start = area->y1;
-    
+
     // esp_lcd_panel_draw_bitmap expects the end coordinates to be exclusive (+1)
     int x_end = area->x2 + 1;
     int y_end = area->y2 + 1;
 
     // Write this specific chunk to the display/hardware buffer
     esp_lcd_panel_draw_bitmap(panel_handle, x_start, y_start, x_end, y_end, px_map);
-    
+
     // Tell LVGL that we are done flushing this area
     lv_display_flush_ready(display);
 }
@@ -137,22 +143,26 @@ void setup() {
     Serial.printf("Heap: %u\n", ESP.getFreeHeap());
     Serial.println("================================");
 
-    Serial.begin(9600);
-
     // start the code
     init_display_rgb();
     init_touch();
     lv_init();
 
     uint32_t buf_size = LCD_WIDTH * (LCD_HEIGHT/10) * sizeof(uint16_t);
-    void* buf1 = (uint16_t *)heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM);
-    void* buf2 = (uint16_t *)heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM);
-    esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 2, &buf1, &buf2);
+    void* buf1;
+    void* buf2;
+    //esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 2, &buf1, &buf2); These are fullscreen buffers
 
-    if(!buf1) buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if(!buf2) buf2 = heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // MALLOC_CAP_SPIRAM for allocating in the external ram
+    // MALLOC_CAP_DMA for allocatin in the internal ram
+    // MALLOC_CAP_8BIT for any memory that can hold 8-bits
+    // MALLOC_CAP_INTERNAL for only internal memory
+    //if(!buf1) 
+    buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    //if(!buf2) 
+    buf2 = heap_caps_malloc(buf_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
 
-    if(!buf1) {
+    if(!buf1 || !buf2) {
         Serial.println("Buffer alloc failed! Free up heap.");
         return;
     }
@@ -164,7 +174,7 @@ void setup() {
     lv_display_set_flush_cb(disp, disp_flush);
     lv_display_set_buffers(disp, buf1, buf2, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
-    
+
     Create_UI();
 
     const esp_timer_create_args_t timer_args = {
@@ -176,6 +186,11 @@ void setup() {
     esp_timer_create(&timer_args, &lvgl_tick_timer);
     esp_timer_start_periodic(lvgl_tick_timer, 2000);
 
+     // We can control the frequency at which the ui is updated here
+    lv_timer_create([](lv_timer_t * t) {
+        Update_UI();
+    }, 16, NULL);
+
     Serial.println("Setup Complete!");
 }
 
@@ -183,7 +198,6 @@ void setup() {
 int counter = 0;
 void loop() {
     // Main LVGL loop to quit program
-    Update_UI();
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(10));
 }

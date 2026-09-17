@@ -43,6 +43,7 @@ protected:
         m_parent = parent; 
         m_obj = lv_obj_create(m_parent);
         lv_obj_add_flag(m_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(m_obj, LV_OBJ_FLAG_SCROLLABLE);
     }
 public:
     void set_pos(uint32_t x, uint32_t y) {
